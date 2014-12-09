@@ -11,6 +11,7 @@ var right=false;
 var duck= false;
 var fire=false;
 var jump=false;
+var activeGameTime = 0;
 
 var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.AUTO, '', { preload:preload, create: create, update:update});
 
@@ -111,22 +112,25 @@ function randomBounce() {
 function createBaddies() {
     baddies = game.add.group();
     baddies.enableBody = true;
-    setInterval(function() {
-        var posX = game.rnd.integerInRange(game.camera.x, (game.camera.x + window.innerWidth));
-        var baddie = baddies.create(posX, game.world.randomY - 200, 'baddie');
-        addBaddieAnimations(baddie);
-        game.physics.arcade.enable(baddie);
-        baddie.body.gravity.y = 300;
-        baddie.body.bounce.y = randomBounce();
-        if(player.scale.x == -1) {
-            baddie.body.velocity.x = -100;
-            baddie.animations.play('run-left');
-        }
-        else {
-            baddie.body.velocity.x = 100;
-            baddie.animations.play('run-right');
-        }
-    }, 2000);
+    baddies.setAll('checkWorldBounds', true);
+    baddies.setAll('outOfBoundsKill', true);
+}
+
+function createBaddie() {
+    var posX = game.rnd.integerInRange(game.camera.x, (game.camera.x + window.innerWidth));
+    var baddie = baddies.create(posX, game.world.randomY - 200, 'baddie');
+    addBaddieAnimations(baddie);
+    game.physics.arcade.enable(baddie);
+    baddie.body.gravity.y = 300;
+    baddie.body.bounce.y = randomBounce();
+    if(player.scale.x == -1) {
+        baddie.body.velocity.x = -100;
+        baddie.animations.play('run-left');
+    }
+    else {
+        baddie.body.velocity.x = 100;
+        baddie.animations.play('run-right');
+    }
 }
 
 function addBaddieAnimations(baddie) {
@@ -159,7 +163,12 @@ function update() {
         right = rightKey.isDown,
         duck = downKey.isDown;
 
-    clouds.x= game.camera.x*0.8-100; //parallax - this moves the clouds just a little bit slower than the camera - 100 to account for the additional pixels because of scrolling
+    // Create Baddie after every 4 seconds
+    if (game.time.now > activeGameTime) {
+        createBaddie();
+        activeGameTime = game.time.now + 2000;
+    }
+    clouds.x = game.camera.x*0.8-100; //parallax - this moves the clouds just a little bit slower than the camera - 100 to account for the additional pixels because of scrolling
 
     associatedInteractions();
     // define what should happen when a button is pressed
