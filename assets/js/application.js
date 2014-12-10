@@ -62,7 +62,7 @@ function create() {
 function addScore() {
     scoreText = game.add.text(16, 16, 'Score: 0', {
         fontSize: '20px TheFont',
-        fill: '#fff'
+        fill: '#000'
     });
 }
 
@@ -84,7 +84,7 @@ function createFireballs() {
 
 function createPlayer() {
     //setup our player
-    player = game.add.sprite((game.world.width/2), game.world.height - 150, 'mario'); //create and position player
+    player = game.add.sprite((game.world.width/10), game.world.height - 150, 'mario'); //create and position player
     game.physics.arcade.enable(player);
 
     //  Player physics properties. Give the little guy a slight bounce.
@@ -97,7 +97,7 @@ function addPlayerAnimations() {
     // add some animations
     player.animations.add('walk', [1,2,3,4], 10, true);  // (key, framesarray, fps,repeat)
     player.animations.add('duck', [11], 0, true);
-    player.animations.add('duckwalk', [10,11,12], 3, true);
+    player.animations.add('duckwalk', [10,11,12], 2, true);
     player.animations.add('happy', [7], 0, true);
     game.camera.follow(player); //always center player
 }
@@ -111,6 +111,7 @@ function createStar() {
     var star = stars.create(game.world.randomX, 0, 'star');
     star.body.gravity.y = 300;
     star.body.bounce.y = randomBounce();
+    star.body.velocity.x = -100;
 }
 
 function randomBounce() {
@@ -125,20 +126,14 @@ function createBaddies() {
 }
 
 function createBaddie() {
-    var posX = game.rnd.integerInRange(game.camera.x, (game.camera.x + window.innerWidth));
+    var posX = game.rnd.integerInRange((game.world.width/20), game.world.width);
     var baddie = baddies.create(posX, game.world.randomY - 200, 'baddie');
     addBaddieAnimations(baddie);
     game.physics.arcade.enable(baddie);
     baddie.body.gravity.y = 300;
     baddie.body.bounce.y = randomBounce();
-    if(player.scale.x == -1) {
-        baddie.body.velocity.x = -100;
-        baddie.animations.play('run-left');
-    }
-    else {
-        baddie.body.velocity.x = 100;
-        baddie.animations.play('run-right');
-    }
+    baddie.body.velocity.x = -100;
+    baddie.animations.play('run-left');
 }
 
 function addBaddieAnimations(baddie) {
@@ -165,6 +160,10 @@ function associatedInteractions() {
 }
 
 function update() {
+    if(!player.alive) {
+        return;
+    }
+
     var fire = spacebarKey.isDown,
         jump = upKey.isDown,
         left = leftKey.isDown,
@@ -177,22 +176,21 @@ function update() {
         createStar();
         activeGameTime = game.time.now + 2000;
     }
-    // clouds.x = game.camera.x*0.8-100; //parallax - this moves the clouds just a little bit slower than the camera - 100 to account for the additional pixels because of scrolling
 
     associatedInteractions();
+    clouds.tilePosition.x -= 2;
+    ground.tilePosition.x -= 0.5;
+    player.body.velocity.x = 0;
+    player.animations.play('walk');
     // define what should happen when a button is pressed
     if (left && !duck) {
-        clouds.tilePosition.x += 1;
-        ground.tilePosition.x += 2;
         player.scale.x = -1;
-        player.body.velocity.x = -300;
+        player.body.velocity.x = -200;
         player.animations.play('walk');
     }
     else if (right && !duck) {
-        clouds.tilePosition.x -= 1;
-        ground.tilePosition.x -= 2;
         player.scale.x = 1;
-        player.body.velocity.x = 300;
+        player.body.velocity.x = 200;
         player.animations.play('walk');
     }
     else if (duck && !left && !right) {
@@ -200,22 +198,14 @@ function update() {
         player.animations.play('duck');
     }
     else if (duck && right) {
-        clouds.tilePosition.x -= 0.1;
-        ground.tilePosition.x -= 0.2;
         player.scale.x = 1;
-        player.body.velocity.x = 100;
+        player.body.velocity.x = 200;
         player.animations.play('duckwalk');
     }
     else if (duck && left) {
-        clouds.tilePosition.x += 0.1;
-        ground.tilePosition.x += 0.2;
         player.scale.x = -1;
-        player.body.velocity.x = -100;
+        player.body.velocity.x = -200;
         player.animations.play('duckwalk');
-    }
-    else {
-        player.body.velocity.x = 0;
-        player.loadTexture('mario', 0);
     }
     if (jump) {
         jump_now(); player.loadTexture('mario', 5);
