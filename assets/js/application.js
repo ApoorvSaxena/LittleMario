@@ -12,6 +12,7 @@ var duck= false;
 var fire=false;
 var jump=false;
 var activeGameTime = 0;
+var score = 0;
 
 var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.AUTO, '', { preload:preload, create: create, update:update});
 
@@ -19,7 +20,7 @@ function preload(){
         //spritesheet for animations
         game.load.spritesheet('mario', '{{ site.baseurl }}/assets/images/mariospritesheet-small.png',50,50); // key, sourcefile, framesize x, framesize y
         //background, ground, fireball images
-        game.load.image('ground', '{{ site.baseurl }}/assets/images/2048x48-ground.png');
+        game.load.image('brick', '{{ site.baseurl }}/assets/images/brick.png');
         game.load.image('clouds', '{{ site.baseurl }}/assets/images/background.png');
         game.load.image('fireball', '{{ site.baseurl }}/assets/images/fireball.png',40,30);
         game.load.image('star', '{{ site.baseurl }}/assets/images/star.png');
@@ -43,8 +44,8 @@ function preloadAudio() {
 function create() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
-    game.world.setBounds(0, 0, 2000, 400);//(x, y, width, height)
-    game.physics.setBoundsToWorld(true, true, true, true, false); //(left, right, top, bottom, setCollisionGroup)
+    // game.world.setBounds(0, 0, 2000, 400);//(x, y, width, height)
+    // game.physics.setBoundsToWorld(true, true, true, true, false); //(left, right, top, bottom, setCollisionGroup)
     // game.physics.gravity.y=600;  // default gravity in game world
     game.physics.friction =5;   // default friction between ground and player or fireballs
     game.add.text(100, 100, "Game Over", { font: "30px TheFont"} );
@@ -55,6 +56,14 @@ function create() {
     createStars();
     createBaddies();
     attachInputEvents();
+    addScore();
+}
+
+function addScore() {
+    scoreText = game.add.text(16, 16, 'Score: 0', {
+        fontSize: '20px TheFont',
+        fill: '#fff'
+    });
 }
 
 function createClouds() {
@@ -62,11 +71,8 @@ function createClouds() {
 }
 
 function createGround() {
-    platforms = game.add.group();
-    platforms.enableBody = true;
-    ground = platforms.create(0, game.world.height-96,'ground');
-    ground.body.immovable=true;    // ground should not move
-    ground = platforms.create(0, game.world.height-48,'ground');
+    ground = game.add.tileSprite(0, game.world.height-96, game.world.width, 96,'brick');
+    game.physics.arcade.enable(ground);
     ground.body.immovable=true;    // ground should not move
 }
 
@@ -78,7 +84,7 @@ function createFireballs() {
 
 function createPlayer() {
     //setup our player
-    player = game.add.sprite(350, game.world.height - 150, 'mario'); //create and position player
+    player = game.add.sprite((game.world.width/2), game.world.height - 150, 'mario'); //create and position player
     game.physics.arcade.enable(player);
 
     //  Player physics properties. Give the little guy a slight bounce.
@@ -92,17 +98,19 @@ function addPlayerAnimations() {
     player.animations.add('walk', [1,2,3,4], 10, true);  // (key, framesarray, fps,repeat)
     player.animations.add('duck', [11], 0, true);
     player.animations.add('duckwalk', [10,11,12], 3, true);
+    player.animations.add('happy', [7], 0, true);
     game.camera.follow(player); //always center player
 }
 
 function createStars() {
     stars = game.add.group();
     stars.enableBody = true;
-    for (var i = 0; i < 12; i++) {
-        var star = stars.create(game.world.randomX, 0, 'star');
-        star.body.gravity.y = 300;
-        star.body.bounce.y = randomBounce();
-    }
+}
+
+function createStar() {
+    var star = stars.create(game.world.randomX, 0, 'star');
+    star.body.gravity.y = 300;
+    star.body.bounce.y = randomBounce();
 }
 
 function randomBounce() {
@@ -147,10 +155,10 @@ function attachInputEvents() {
 }
 
 function associatedInteractions() {
-    game.physics.arcade.collide(player, platforms);
-    game.physics.arcade.collide(stars, platforms);
-    game.physics.arcade.collide(fireballs, platforms);
-    game.physics.arcade.collide(baddies, platforms);
+    game.physics.arcade.collide(player, ground);
+    game.physics.arcade.collide(stars, ground);
+    game.physics.arcade.collide(fireballs, ground);
+    game.physics.arcade.collide(baddies, ground);
     game.physics.arcade.overlap(player, baddies, killPlayer, null, this);
     game.physics.arcade.overlap(fireballs, baddies, beatBaddie, null, this);
     game.physics.arcade.overlap(player, stars, collectStar, null, this);
@@ -166,18 +174,23 @@ function update() {
     // Create Baddie after every 4 seconds
     if (game.time.now > activeGameTime) {
         createBaddie();
+        createStar();
         activeGameTime = game.time.now + 2000;
     }
-    clouds.x = game.camera.x*0.8-100; //parallax - this moves the clouds just a little bit slower than the camera - 100 to account for the additional pixels because of scrolling
+    // clouds.x = game.camera.x*0.8-100; //parallax - this moves the clouds just a little bit slower than the camera - 100 to account for the additional pixels because of scrolling
 
     associatedInteractions();
     // define what should happen when a button is pressed
     if (left && !duck) {
+        clouds.tilePosition.x += 1;
+        ground.tilePosition.x += 2;
         player.scale.x = -1;
         player.body.velocity.x = -300;
         player.animations.play('walk');
     }
     else if (right && !duck) {
+        clouds.tilePosition.x -= 1;
+        ground.tilePosition.x -= 2;
         player.scale.x = 1;
         player.body.velocity.x = 300;
         player.animations.play('walk');
@@ -187,11 +200,15 @@ function update() {
         player.animations.play('duck');
     }
     else if (duck && right) {
+        clouds.tilePosition.x -= 0.1;
+        ground.tilePosition.x -= 0.2;
         player.scale.x = 1;
         player.body.velocity.x = 100;
         player.animations.play('duckwalk');
     }
     else if (duck && left) {
+        clouds.tilePosition.x += 0.1;
+        ground.tilePosition.x += 0.2;
         player.scale.x = -1;
         player.body.velocity.x = -100;
         player.animations.play('duckwalk');
@@ -243,12 +260,19 @@ function collectStar(player, star) {
     // Removes the star from the screen
     star.kill();
     game.audio.play('ping');
+    updateScore(1);
+}
+
+function updateScore(points) {
+    score += points;
+    scoreText.text = 'Score: ' + score;
 }
 
 function beatBaddie(fireball, baddie) {
     // Removes the star from the screen
     baddie.kill();
     fireball.kill();
+    updateScore(5);
     game.audio.play('beat');
 }
 
