@@ -13,6 +13,8 @@ var fire=false;
 var jump=false;
 var activeGameTime = 0;
 var score = 0;
+var power = 1;
+var star = 0;
 
 var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.AUTO, '', { preload:preload, create: create, update:update});
 
@@ -20,6 +22,7 @@ function preload(){
         //spritesheet for animations
         game.load.spritesheet('mario', '{{ site.baseurl }}/assets/images/mariospritesheet-small.png',50,50); // key, sourcefile, framesize x, framesize y
         //background, ground, fireball images
+        game.load.image('coin', '{{ site.baseurl }}/assets/images/coin.png');
         game.load.image('brick', '{{ site.baseurl }}/assets/images/brick.png');
         game.load.image('clouds', '{{ site.baseurl }}/assets/images/background.png');
         game.load.image('fireball', '{{ site.baseurl }}/assets/images/fireball.png',40,30);
@@ -57,10 +60,44 @@ function create() {
     createBaddies();
     attachInputEvents();
     addScore();
+    addPower();
+    addStar();
 }
 
 function addScore() {
-    scoreText = game.add.text(16, 16, 'Score: 0', {
+    var imagePosX = (0.95 * game.world.width),
+        imagePosY = (0.07 * game.world.height),
+        textPosX = imagePosX + (0.01 * game.world.width),
+        textPosY = imagePosY - (0.005 * game.world.height);
+        image = game.add.sprite(imagePosX, imagePosY, 'coin');
+    image.anchor.set(0.9);
+    scoreText = game.add.text(textPosX, textPosY - (0.04 * game.world.height), score.toString(), {
+        fontSize: '20px TheFont',
+        fill: '#000'
+    });
+}
+
+function addPower() {
+    var imagePosX = (0.885 * game.world.width),
+        imagePosY = (0.07 * game.world.height),
+        textPosX = imagePosX + (0.01 * game.world.width),
+        textPosY = imagePosY - (0.006 * game.world.height);
+        image = game.add.sprite(imagePosX, imagePosY, 'fireball');
+    image.anchor.set(0.9);
+    powerText = game.add.text(textPosX, textPosY - (0.04 * game.world.height), power.toString(), {
+        fontSize: '20px TheFont',
+        fill: '#000'
+    });
+}
+
+function addStar() {
+    var imagePosX = (0.81 * game.world.width),
+        imagePosY = (0.06 * game.world.height),
+        textPosX = imagePosX + (0.01 * game.world.width),
+        textPosY = imagePosY + (0.003 * game.world.height);
+        image = game.add.sprite(imagePosX, imagePosY, 'star');
+    image.anchor.set(0.9);
+    starText = game.add.text(textPosX, textPosY - (0.04 * game.world.height), star.toString(), {
         fontSize: '20px TheFont',
         fill: '#000'
     });
@@ -228,7 +265,7 @@ function fire_now() {
     if (game.time.now > nextFire){
         nextFire = game.time.now + fireRate;
         var fireball = fireballs.getFirstExists(false); // get the first created fireball that no exists atm
-        if (fireball){
+        if (fireball && (power > 0)){
             fireball.exists = true;  // come to existance !
             fireball.lifespan=2500;  // remove the fireball after 2500 milliseconds - back to non-existance
             fireball.body.gravity.y = 400;
@@ -242,6 +279,7 @@ function fire_now() {
                 fireball.body.velocity.x = 500;
                 fireball.body.velocity.y = -80;
             }
+            addToPower(-1);
         }
     }
 }
@@ -249,20 +287,39 @@ function fire_now() {
 function collectStar(player, star) {
     // Removes the star from the screen
     star.kill();
+    addToPower(1);
     game.audio.play('ping');
-    updateScore(1);
+    addToScore(1);
+    addToStar();
 }
 
-function updateScore(points) {
+function addToStar() {
+    starText.text = ++star;
+}
+
+function addToPower(point) {
+    power += point;
+    updatePower();
+}
+
+function updatePower() {
+    powerText.text = power.toString();
+}
+
+function addToScore(points) {
     score += points;
-    scoreText.text = 'Score: ' + score;
+    updateScore();
+}
+
+function updateScore() {
+    scoreText.text = score;
 }
 
 function beatBaddie(fireball, baddie) {
     // Removes the star from the screen
     baddie.kill();
     fireball.kill();
-    updateScore(5);
+    addToScore(5);
     game.audio.play('beat');
 }
 
