@@ -29,6 +29,10 @@ function preload(){
         game.load.image('star', '{{ site.baseurl }}/assets/images/star.png');
         game.load.spritesheet('baddie', '{{ site.baseurl }}/assets/images/baddie.png', 32, 32);
 
+        game.load.image('compass', '{{ site.baseurl }}/assets/images/controls/compass_rose.png');
+        game.load.image('touch_segment', '{{ site.baseurl }}/assets/images/controls/touch_segment.png');
+        game.load.image('touch', '{{ site.baseurl }}/assets/images/controls/touch.png');
+
         preloadAudio();
         //autoalign the game stage
         game.scale.pageAlignHorizontally = true;
@@ -52,6 +56,7 @@ function create() {
     // game.physics.gravity.y=600;  // default gravity in game world
     game.physics.friction =5;   // default friction between ground and player or fireballs
     game.add.text(100, 100, "Game Over", { font: "30px TheFont"} );
+    addTouchControls();
     createClouds();
     createGround();
     createFireballs();
@@ -62,6 +67,12 @@ function create() {
     addScore();
     addPower();
     addStar();
+}
+
+function addTouchControls() {
+    game.touchControl = game.plugins.add(Phaser.Plugin.TouchControl);
+    game.touchControl.inputEnable();
+    game.touchControl.settings.singleDirection = true;
 }
 
 function addScore() {
@@ -220,12 +231,12 @@ function update() {
     player.body.velocity.x = 0;
     player.animations.play('walk');
     // define what should happen when a button is pressed
-    if (left && !duck) {
+    if ((game.touchControl.cursors.left) || (left && !duck)) {
         player.scale.x = -1;
         player.body.velocity.x = -200;
         player.animations.play('walk');
     }
-    else if (right && !duck) {
+    else if ((game.touchControl.cursors.right) || (right && !duck)) {
         player.scale.x = 1;
         player.body.velocity.x = 200;
         player.animations.play('walk');
@@ -244,7 +255,7 @@ function update() {
         player.body.velocity.x = -200;
         player.animations.play('duckwalk');
     }
-    if (jump) {
+    if (game.touchControl.cursors.up || (jump)) {
         jump_now(); player.loadTexture('mario', 5);
     }  //change to another frame of the spritesheet
     if (fire) {
